@@ -15,7 +15,6 @@ import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
 import { publicProvider } from "wagmi/providers/public";
 import { AppConfigProvider } from "./Components/AppConfig";
 
-// Define Base mainnet chain
 const baseMainnet = {
   id: 8453,
   name: 'Base',
@@ -131,7 +130,6 @@ const connectors = connectorsForWallets([
       }),
       wallet.ledger({
         chains,
-        // infuraId: null,
       }),
       wallet.steak({ chains }),
       wallet.trust({ chains, shimDisconnect: true }),

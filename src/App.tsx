@@ -21,14 +21,12 @@ function App({ showConfigPanel = true }: { showConfigPanel?: boolean }) {
   const [isVerified, setIsVerified] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
 
-  // Show token verification popup when connected and verification is enabled
   useEffect(() => {
     if (isConnected && enableTokenVerification && !isVerified) {
       setShowTokenVerification(true);
     }
   }, [isConnected, enableTokenVerification, isVerified]);
 
-  // Reset verification when wallet disconnects
   useEffect(() => {
     if (!isConnected) {
       setIsVerified(false);
@@ -37,7 +35,6 @@ function App({ showConfigPanel = true }: { showConfigPanel?: boolean }) {
     }
   }, [isConnected]);
 
-  // Block access if verification is enabled but user is not verified
   useEffect(() => {
     if (enableTokenVerification && isConnected && !isVerified) {
       setIsBlocked(true);
@@ -56,10 +53,8 @@ function App({ showConfigPanel = true }: { showConfigPanel?: boolean }) {
     setShowTokenVerification(false);
   };
 
-  // Use placeholder token address if none provided
   const effectiveTokenAddress = tokenAddress || "0x1234567890123456789012345678901234567890";
 
-  // Show blocking screen if token verification is required but not completed
   if (isBlocked) {
     return (
       <div className="bg-zinc-900 flex justify-center items-center h-screen text-white w-screen p-10">
@@ -95,7 +90,6 @@ function App({ showConfigPanel = true }: { showConfigPanel?: boolean }) {
           </p>
         </div>
 
-        {/* Chain-Specific Token Verification Popup */}
         {showTokenVerification && (
           <ChainSpecificVerification
             chainType={selectedChain}
@@ -151,7 +145,6 @@ function App({ showConfigPanel = true }: { showConfigPanel?: boolean }) {
           <ConnectButton showBalance={false} />
         </div>
         
-        {/* Show verification status */}
         {enableTokenVerification && isConnected && (
           <div className="text-center mt-4">
             {isVerified ? (
@@ -172,7 +165,6 @@ function App({ showConfigPanel = true }: { showConfigPanel?: boolean }) {
         </div>
       </div>
 
-      {/* Chain-Specific Token Verification Popup */}
       {showTokenVerification && (
         <ChainSpecificVerification
           chainType={selectedChain}

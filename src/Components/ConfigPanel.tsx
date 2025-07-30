@@ -27,6 +27,8 @@ const ConfigPanel: React.FC = () => {
     { value: 'sepolia', label: 'Sepolia', description: 'Testnet' },
     { value: 'polygonMumbai', label: 'Polygon Mumbai', description: 'Testnet' },
     { value: 'optimismGoerli', label: 'Optimism Goerli', description: 'Testnet' },
+    { value: 'arbitrumSepolia', label: 'Arbitrum Sepolia', description: 'Testnet' },
+    { value: 'baseSepolia', label: 'Base Sepolia', description: 'Testnet' },
     { value: 'solana', label: 'Solana', description: 'SPL' },
   ];
 

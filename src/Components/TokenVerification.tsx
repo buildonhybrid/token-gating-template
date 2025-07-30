@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useContractRead } from 'wagmi';
+import { useAccount, useContractRead, useDisconnect } from 'wagmi';
 import { ethers } from 'ethers';
 
-// ERC20 ABI for balanceOf function
 const ERC20_ABI = [
   {
     "constant": true,
-    "inputs": [{"name": "_owner", "type": "address"}],
+    "inputs": [{"name": "account", "type": "address"}],
     "name": "balanceOf",
-    "outputs": [{"name": "balance", "type": "uint256"}],
+    "outputs": [{"name": "", "type": "uint256"}],
     "type": "function"
   },
   {
@@ -22,13 +21,6 @@ const ERC20_ABI = [
     "constant": true,
     "inputs": [],
     "name": "symbol",
-    "outputs": [{"name": "", "type": "string"}],
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "name",
     "outputs": [{"name": "", "type": "string"}],
     "type": "function"
   }
@@ -50,12 +42,14 @@ const TokenVerification: React.FC<TokenVerificationProps> = ({
   onClose
 }) => {
   const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
   const [userBalance, setUserBalance] = useState<string>('0');
   const [tokenSymbol, setTokenSymbol] = useState<string>('');
   const [tokenDecimals, setTokenDecimals] = useState<number>(18);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [verificationAttempted, setVerificationAttempted] = useState<boolean>(false);
 
-  // Read token balance
   const { data: balanceData, refetch: refetchBalance } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
@@ -64,7 +58,6 @@ const TokenVerification: React.FC<TokenVerificationProps> = ({
     enabled: !!address && !!tokenAddress,
   });
 
-  // Read token symbol
   const { data: symbolData } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
@@ -72,7 +65,6 @@ const TokenVerification: React.FC<TokenVerificationProps> = ({
     enabled: !!tokenAddress,
   });
 
-  // Read token decimals
   const { data: decimalsData } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
@@ -82,8 +74,13 @@ const TokenVerification: React.FC<TokenVerificationProps> = ({
 
   useEffect(() => {
     if (balanceData) {
-      const balance = ethers.utils.formatUnits(balanceData.toString(), tokenDecimals);
-      setUserBalance(balance);
+      try {
+        const balance = ethers.utils.formatUnits(balanceData.toString(), tokenDecimals);
+        setUserBalance(balance);
+      } catch (err) {
+        console.error('Error formatting balance:', err);
+        setError('Error formatting token balance');
+      }
     }
   }, [balanceData, tokenDecimals]);
 
@@ -99,23 +96,26 @@ const TokenVerification: React.FC<TokenVerificationProps> = ({
     }
   }, [decimalsData]);
 
-  useEffect(() => {
-    if (isConnected && address) {
-      refetchBalance();
-    }
-  }, [isConnected, address, refetchBalance]);
-
   const hasRequiredTokens = parseFloat(userBalance) >= parseFloat(requiredAmount);
 
   const handleVerify = async () => {
-    setIsLoading(true);
     try {
+      setIsLoading(true);
+      setVerificationAttempted(true);
+      setError('');
+      
       await refetchBalance();
       if (hasRequiredTokens) {
         onVerificationComplete();
+      } else {
+        setError('Insufficient tokens. Wallet will be disconnected.');
+        setTimeout(() => {
+          disconnect();
+        }, 3000);
       }
     } catch (error) {
       console.error('Error verifying tokens:', error);
+      setError('Failed to verify token balance');
     } finally {
       setIsLoading(false);
     }
@@ -172,6 +172,11 @@ const TokenVerification: React.FC<TokenVerificationProps> = ({
         ) : (
           <div className="text-red-400 mb-4">
             ❌ Insufficient tokens. Please acquire more {tokenSymbol || tokenName} tokens.
+            {verificationAttempted && (
+              <div className="text-yellow-400 text-sm mt-2">
+                ⏰ Wallet will be disconnected in 3 seconds...
+              </div>
+            )}
           </div>
         )}
 
@@ -187,7 +192,7 @@ const TokenVerification: React.FC<TokenVerificationProps> = ({
             onClick={handleVerify}
             disabled={!hasRequiredTokens || isLoading}
             className={`px-4 py-2 rounded ${
-              hasRequiredTokens 
+              hasRequiredTokens
                 ? 'bg-green-600 hover:bg-green-700 text-white' 
                 : 'bg-gray-500 text-gray-300 cursor-not-allowed'
             }`}

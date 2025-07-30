@@ -95,6 +95,8 @@ Hide the configuration panel and enable strict token gating.
 
 ## Supported Networks
 
+The system uses **viem** for chain data and supports the following networks:
+
 ### EVM Chains
 - **Ethereum Mainnet** (Chain ID: 1)
 - **Base Mainnet** (Chain ID: 8453)
@@ -107,9 +109,14 @@ Hide the configuration panel and enable strict token gating.
 - **Sepolia** (Chain ID: 11155111)
 - **Polygon Mumbai** (Chain ID: 80001)
 - **Optimism Goerli** (Chain ID: 420)
+- **Arbitrum Sepolia** (Chain ID: 421614)
+- **Base Sepolia** (Chain ID: 84532)
 
 ### Solana (Placeholder)
 - **Solana Mainnet** (Requires @solana/web3.js integration)
+
+### Chain Data Source
+All chain information (Chain IDs, RPC URLs, block explorers) is sourced from **viem** to ensure accuracy and maintainability.
 
 ## Error Handling
 

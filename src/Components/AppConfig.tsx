@@ -1,6 +1,35 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { mainnet, base, polygon, arbitrum, optimism, goerli, sepolia, polygonMumbai, optimismGoerli, arbitrumSepolia, baseSepolia, Chain } from 'viem/chains';
 
-export type ChainType = 'ethereum' | 'solana' | 'base' | 'polygon' | 'arbitrum' | 'goerli' | 'sepolia' | 'polygonMumbai' | 'optimism' | 'optimismGoerli';
+export type ChainType = 'ethereum' | 'solana' | 'base' | 'polygon' | 'arbitrum' | 'optimism' | 'goerli' | 'sepolia' | 'polygonMumbai' | 'optimismGoerli' | 'arbitrumSepolia' | 'baseSepolia';
+
+export const getViemChain = (chainType: ChainType): Chain | null => {
+  const chainMap: Record<ChainType, Chain | null> = {
+    ethereum: mainnet,
+    base: base,
+    polygon: polygon,
+    arbitrum: arbitrum,
+    optimism: optimism,
+    goerli: goerli,
+    sepolia: sepolia,
+    polygonMumbai: polygonMumbai,
+    optimismGoerli: optimismGoerli,
+    arbitrumSepolia: arbitrumSepolia,
+    baseSepolia: baseSepolia,
+    solana: null,
+  };
+  return chainMap[chainType];
+};
+
+export const getChainId = (chainType: ChainType): number | null => {
+  const chain = getViemChain(chainType);
+  return chain?.id || null;
+};
+
+export const getRpcUrl = (chainType: ChainType): string | null => {
+  const chain = getViemChain(chainType);
+  return chain?.rpcUrls.default.http[0] || null;
+};
 
 interface AppConfigContextType {
   enableTokenVerification: boolean;

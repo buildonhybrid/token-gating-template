@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount, useContractRead, useDisconnect, useNetwork, useSwitchNetwork } from 'wagmi';
 import { ethers } from 'ethers';
-import { ChainType } from './AppConfig';
+import { ChainType, getChainId, getRpcUrl } from './AppConfig';
 
-// ERC20 ABI for Ethereum-compatible chains
 const ERC20_ABI = [
   {
     "constant": true,
@@ -58,29 +57,14 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
   const [verificationAttempted, setVerificationAttempted] = useState<boolean>(false);
   const [directBalance, setDirectBalance] = useState<string>('0');
 
-  // Direct ethers call for balance (since wagmi is failing)
   useEffect(() => {
     if (chainType !== 'solana' && tokenAddress && address) {
       const getDirectBalance = async () => {
         try {
-          // Use appropriate RPC for each chain
-          let rpcUrl = 'https://base-mainnet.public.blastapi.io'; // default
-          if (chainType === 'ethereum') {
-            rpcUrl = 'https://rpc.ankr.com/eth';
-          } else if (chainType === 'polygon') {
-            rpcUrl = 'https://rpc.ankr.com/polygon';
-          } else if (chainType === 'arbitrum') {
-            rpcUrl = 'https://rpc.ankr.com/arbitrum';
-          } else if (chainType === 'optimism') {
-            rpcUrl = 'https://rpc.ankr.com/optimism';
-          } else if (chainType === 'goerli') {
-            rpcUrl = 'https://rpc.ankr.com/eth_goerli';
-          } else if (chainType === 'sepolia') {
-            rpcUrl = 'https://rpc.ankr.com/eth_sepolia';
-          } else if (chainType === 'polygonMumbai') {
-            rpcUrl = 'https://rpc.ankr.com/polygon_mumbai';
-          } else if (chainType === 'optimismGoerli') {
-            rpcUrl = 'https://rpc.ankr.com/optimism_testnet';
+          const rpcUrl = getRpcUrl(chainType);
+          if (!rpcUrl) {
+            console.error('No RPC URL found for chain:', chainType);
+            return;
           }
           
           const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
@@ -98,29 +82,14 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
     }
   }, [chainType, tokenAddress, address, tokenDecimals]);
 
-  // Direct ethers call for symbol
   useEffect(() => {
     if (chainType !== 'solana' && tokenAddress) {
       const getDirectSymbol = async () => {
         try {
-          // Use appropriate RPC for each chain
-          let rpcUrl = 'https://base-mainnet.public.blastapi.io'; // default
-          if (chainType === 'ethereum') {
-            rpcUrl = 'https://rpc.ankr.com/eth';
-          } else if (chainType === 'polygon') {
-            rpcUrl = 'https://rpc.ankr.com/polygon';
-          } else if (chainType === 'arbitrum') {
-            rpcUrl = 'https://rpc.ankr.com/arbitrum';
-          } else if (chainType === 'optimism') {
-            rpcUrl = 'https://rpc.ankr.com/optimism';
-          } else if (chainType === 'goerli') {
-            rpcUrl = 'https://rpc.ankr.com/eth_goerli';
-          } else if (chainType === 'sepolia') {
-            rpcUrl = 'https://rpc.ankr.com/eth_sepolia';
-          } else if (chainType === 'polygonMumbai') {
-            rpcUrl = 'https://rpc.ankr.com/polygon_mumbai';
-          } else if (chainType === 'optimismGoerli') {
-            rpcUrl = 'https://rpc.ankr.com/optimism_testnet';
+          const rpcUrl = getRpcUrl(chainType);
+          if (!rpcUrl) {
+            console.error('No RPC URL found for chain:', chainType);
+            return;
           }
           
           const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
@@ -130,36 +99,21 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
           console.log('Direct ethers symbol:', symbol);
         } catch (error) {
           console.error('Direct ethers symbol error:', error);
-          setTokenSymbol(tokenName); // Use provided token name as fallback
+          setTokenSymbol(tokenName);
         }
       };
       getDirectSymbol();
     }
   }, [chainType, tokenAddress, tokenName]);
 
-  // Direct ethers call for decimals
   useEffect(() => {
     if (chainType !== 'solana' && tokenAddress) {
       const getDirectDecimals = async () => {
         try {
-          // Use appropriate RPC for each chain
-          let rpcUrl = 'https://base-mainnet.public.blastapi.io'; // default
-          if (chainType === 'ethereum') {
-            rpcUrl = 'https://rpc.ankr.com/eth';
-          } else if (chainType === 'polygon') {
-            rpcUrl = 'https://rpc.ankr.com/polygon';
-          } else if (chainType === 'arbitrum') {
-            rpcUrl = 'https://rpc.ankr.com/arbitrum';
-          } else if (chainType === 'optimism') {
-            rpcUrl = 'https://rpc.ankr.com/optimism';
-          } else if (chainType === 'goerli') {
-            rpcUrl = 'https://rpc.ankr.com/eth_goerli';
-          } else if (chainType === 'sepolia') {
-            rpcUrl = 'https://rpc.ankr.com/eth_sepolia';
-          } else if (chainType === 'polygonMumbai') {
-            rpcUrl = 'https://rpc.ankr.com/polygon_mumbai';
-          } else if (chainType === 'optimismGoerli') {
-            rpcUrl = 'https://rpc.ankr.com/optimism_testnet';
+          const rpcUrl = getRpcUrl(chainType);
+          if (!rpcUrl) {
+            console.error('No RPC URL found for chain:', chainType);
+            return;
           }
           
           const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
@@ -169,211 +123,152 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
           console.log('Direct ethers decimals:', decimals);
         } catch (error) {
           console.error('Direct ethers decimals error:', error);
-          setTokenDecimals(18); // Fallback
+          setTokenDecimals(18);
         }
       };
       getDirectDecimals();
     }
   }, [chainType, tokenAddress]);
 
-  // Check if user is on the correct network
   const isOnCorrectNetwork = () => {
-    if (chainType === 'base') {
-      return chain?.id === 8453; // Base mainnet
-    }
-    if (chainType === 'ethereum') {
-      return chain?.id === 1; // Ethereum mainnet
-    }
-    if (chainType === 'polygon') {
-      return chain?.id === 137; // Polygon mainnet
-    }
-    if (chainType === 'arbitrum') {
-      return chain?.id === 42161; // Arbitrum mainnet
-    }
-    if (chainType === 'goerli') {
-      return chain?.id === 5; // Goerli testnet
-    }
-    if (chainType === 'sepolia') {
-      return chain?.id === 11155111; // Sepolia testnet
-    }
-    if (chainType === 'polygonMumbai') {
-      return chain?.id === 80001; // Polygon Mumbai testnet
-    }
-    if (chainType === 'optimism') {
-      return chain?.id === 10; // Optimism mainnet
-    }
-    if (chainType === 'optimismGoerli') {
-      return chain?.id === 420; // Optimism Goerli testnet
-    }
     if (chainType === 'solana') {
-      // Solana uses a different chain ID system
-      return true; // We'll handle Solana separately
+      return true;
     }
-    return false; // Unsupported chain
+    const expectedChainId = getChainId(chainType);
+    return chain?.id === expectedChainId;
   };
 
   const handleSwitchNetwork = () => {
-    if (chainType === 'base' && switchNetwork) {
-      switchNetwork(8453);
-    } else if (chainType === 'ethereum' && switchNetwork) {
-      switchNetwork(1);
-    } else if (chainType === 'polygon' && switchNetwork) {
-      switchNetwork(137);
-    } else if (chainType === 'arbitrum' && switchNetwork) {
-      switchNetwork(42161);
-    } else if (chainType === 'goerli' && switchNetwork) {
-      switchNetwork(5);
-    } else if (chainType === 'sepolia' && switchNetwork) {
-      switchNetwork(11155111);
-    } else if (chainType === 'polygonMumbai' && switchNetwork) {
-      switchNetwork(80001);
-    } else if (chainType === 'optimism' && switchNetwork) {
-      switchNetwork(10);
-    } else if (chainType === 'optimismGoerli' && switchNetwork) {
-      switchNetwork(420);
+    const chainId = getChainId(chainType);
+    if (chainId && switchNetwork) {
+      switchNetwork(chainId);
     }
   };
 
-  // For Ethereum-compatible chains (Ethereum, Base, Polygon, Arbitrum)
-  const { data: balanceData, refetch: refetchBalance, error: balanceError } = useContractRead({
+  const { data: balanceData, refetch: refetchBalance } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
     functionName: 'balanceOf',
     args: [address],
     enabled: !!address && !!tokenAddress && chainType !== 'solana',
-    onError: (error) => {
-      console.error('Balance read error:', error);
-    },
-    onSuccess: (data) => {
-      console.log('Balance read success:', data);
-    },
-    chainId: chainType === 'base' ? 8453 : chainType === 'ethereum' ? 1 : chainType === 'polygon' ? 137 : chainType === 'arbitrum' ? 42161 : undefined,
   });
 
-  const { data: symbolData, error: symbolError } = useContractRead({
+  const { data: symbolData } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
     functionName: 'symbol',
     enabled: !!tokenAddress && chainType !== 'solana',
-    onError: (error) => {
-      console.error('Symbol read error:', error);
-    },
-    onSuccess: (data) => {
-      console.log('Symbol read success:', data);
-    },
-    chainId: chainType === 'base' ? 8453 : chainType === 'ethereum' ? 1 : chainType === 'polygon' ? 137 : chainType === 'arbitrum' ? 42161 : undefined,
   });
 
-  const { data: decimalsData, error: decimalsError } = useContractRead({
+  const { data: decimalsData } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
     functionName: 'decimals',
     enabled: !!tokenAddress && chainType !== 'solana',
-    onError: (error) => {
-      console.error('Decimals read error:', error);
-    },
-    onSuccess: (data) => {
-      console.log('Decimals read success:', data);
-    },
-    chainId: chainType === 'base' ? 8453 : chainType === 'ethereum' ? 1 : chainType === 'polygon' ? 137 : chainType === 'arbitrum' ? 42161 : undefined,
   });
 
-  // Debug logging
-  useEffect(() => {
-    const debug = {
-      chainType,
-      tokenAddress,
-      userAddress: address,
-      balanceData: balanceData?.toString(),
-      symbolData: symbolData?.toString(),
-      decimalsData: decimalsData?.toString(),
-      balanceError: balanceError?.message,
-      symbolError: symbolError?.message,
-      decimalsError: decimalsError?.message,
-      directBalance,
-      directSymbol: tokenSymbol,
-      directDecimals: tokenDecimals,
-    };
-    setDebugInfo(JSON.stringify(debug, null, 2));
-  }, [chainType, tokenAddress, address, balanceData, symbolData, decimalsData, balanceError, symbolError, decimalsError, directBalance, tokenSymbol, tokenDecimals]);
+  const checkSolanaBalance = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+      
+      if (typeof window !== 'undefined' && (window as any).solana) {
+        const solana = (window as any).solana;
+        
+        if (!solana.isConnected) {
+          setError('Please connect your Solana wallet first.');
+          return;
+        }
 
-  // Handle Solana token balance (placeholder - would need @solana/web3.js)
+        const response = await solana.request({
+          method: 'getTokenAccountsByOwner',
+          params: {
+            owner: address,
+            mint: tokenAddress,
+            programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+          }
+        });
+
+        if (response.value && response.value.length > 0) {
+          let totalBalance = 0;
+          for (const account of response.value) {
+            const accountInfo = await solana.request({
+              method: 'getTokenAccountBalance',
+              params: {
+                tokenAccount: account.pubkey
+              }
+            });
+            
+            if (accountInfo.value && accountInfo.value.uiAmount) {
+              totalBalance += accountInfo.value.uiAmount;
+            }
+          }
+          
+          setUserBalance(totalBalance.toString());
+          setTokenSymbol(tokenName);
+          setDebugInfo(`Solana balance: ${totalBalance} ${tokenName}`);
+        } else {
+          setUserBalance('0');
+          setTokenSymbol(tokenName);
+          setDebugInfo('No Solana token accounts found');
+        }
+      } else {
+        setError('Solana wallet not detected. Please install a Solana wallet extension like Phantom or Solflare.');
+      }
+    } catch (error) {
+      console.error('Solana balance check error:', error);
+      setError('Failed to check Solana token balance. Please ensure your wallet is connected and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (chainType === 'solana' && isConnected && address) {
-      setError('Solana token verification requires @solana/web3.js integration. Please use Ethereum-compatible chains for now.');
-      setUserBalance('0');
-      setTokenSymbol('SPL');
-    }
-  }, [chainType, isConnected, address]);
-
-  // Handle Ethereum-compatible chains
-  useEffect(() => {
-    if (directBalance && directBalance !== '0') {
-      // Use direct ethers result if available
-      setUserBalance(directBalance);
-      console.log('Using direct balance:', directBalance);
+      checkSolanaBalance();
     } else if (balanceData && chainType !== 'solana') {
-      try {
-        const balance = ethers.utils.formatUnits(balanceData.toString(), tokenDecimals);
-        setUserBalance(balance);
-        console.log('Balance formatted:', balance, 'from raw:', balanceData.toString());
-      } catch (err) {
-        console.error('Error formatting balance:', err);
-        setError('Error formatting token balance');
-      }
-    } else if (balanceError) {
-      console.error('Balance error:', balanceError);
-      setError(`Failed to read balance: ${balanceError.message}`);
+      const balance = ethers.utils.formatUnits(balanceData.toString(), tokenDecimals);
+      setUserBalance(balance);
+      setDebugInfo(`Ethereum balance: ${balance} ${tokenSymbol}`);
     }
-  }, [balanceData, tokenDecimals, chainType, balanceError, directBalance]);
+  }, [chainType, balanceData, tokenDecimals, tokenSymbol, address, isConnected, tokenAddress, tokenName]);
 
   useEffect(() => {
     if (symbolData && chainType !== 'solana') {
       setTokenSymbol(symbolData.toString());
-      console.log('Token symbol:', symbolData.toString());
-    } else if (symbolError) {
-      console.error('Symbol error:', symbolError);
-      setError(`Failed to read token symbol: ${symbolError.message}`);
     }
-  }, [symbolData, chainType, symbolError]);
+  }, [symbolData, chainType]);
 
   useEffect(() => {
     if (decimalsData && chainType !== 'solana') {
       setTokenDecimals(Number(decimalsData));
-      console.log('Token decimals:', decimalsData);
-    } else if (decimalsError) {
-      console.error('Decimals error:', decimalsError);
-      setError(`Failed to read token decimals: ${decimalsError.message}`);
     }
-  }, [decimalsData, chainType, decimalsError]);
+  }, [decimalsData, chainType]);
 
   useEffect(() => {
     if (isConnected && address && chainType !== 'solana') {
-      refetchBalance();
+      setDebugInfo(`Connected: ${address}\nChain: ${chainType}\nToken: ${tokenAddress}`);
     }
-  }, [isConnected, address, refetchBalance, chainType]);
+  }, [isConnected, address, chainType, tokenAddress]);
 
   const hasRequiredTokens = parseFloat(userBalance) >= parseFloat(requiredAmount);
 
-  // Auto-disconnect if verification fails
-  useEffect(() => {
-    if (verificationAttempted && !hasRequiredTokens && isConnected) {
-      // Wait a bit to show the error message before disconnecting
-      const timer = setTimeout(() => {
-        disconnect();
-        setVerificationAttempted(false);
-      }, 3000); // 3 seconds delay
-
-      return () => clearTimeout(timer);
-    }
-  }, [verificationAttempted, hasRequiredTokens, isConnected, disconnect]);
-
   const handleVerify = async () => {
-    setIsLoading(true);
-    setVerificationAttempted(true);
     try {
+      setIsLoading(true);
+      setVerificationAttempted(true);
+      setError('');
+      
       if (chainType === 'solana') {
-        setError('Solana verification not yet implemented');
+        await checkSolanaBalance();
+        if (hasRequiredTokens) {
+          onVerificationComplete();
+        } else {
+          setError('Insufficient Solana tokens. Wallet will be disconnected.');
+          setTimeout(() => {
+            disconnect();
+          }, 3000);
+        }
         return;
       }
       
@@ -382,6 +277,9 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
         onVerificationComplete();
       } else {
         setError('Insufficient tokens. Wallet will be disconnected.');
+        setTimeout(() => {
+          disconnect();
+        }, 3000);
       }
     } catch (error) {
       console.error('Error verifying tokens:', error);
@@ -402,6 +300,8 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
       sepolia: 'Sepolia',
       polygonMumbai: 'Polygon Mumbai',
       optimismGoerli: 'Optimism Goerli',
+      arbitrumSepolia: 'Arbitrum Sepolia',
+      baseSepolia: 'Base Sepolia',
       solana: 'Solana'
     };
     return chainNames[chain] || chain;
@@ -428,7 +328,6 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
     );
   }
 
-  // Show network switching prompt if on wrong network
   if (!isOnCorrectNetwork()) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -484,7 +383,6 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
             </p>
           </div>
 
-          {/* Debug Info */}
           <details className="mt-4">
             <summary className="text-xs text-gray-400 cursor-pointer">Debug Info</summary>
             <pre className="text-xs text-gray-500 mt-2 bg-zinc-900 p-2 rounded overflow-auto">
@@ -518,9 +416,9 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
           
           <button
             onClick={handleVerify}
-            disabled={!hasRequiredTokens || isLoading || chainType === 'solana'}
+            disabled={!hasRequiredTokens || isLoading}
             className={`px-4 py-2 rounded ${
-              hasRequiredTokens && chainType !== 'solana'
+              hasRequiredTokens
                 ? 'bg-green-600 hover:bg-green-700 text-white' 
                 : 'bg-gray-500 text-gray-300 cursor-not-allowed'
             }`}
