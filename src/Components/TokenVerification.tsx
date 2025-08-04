@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAccount, useContractRead, useDisconnect } from 'wagmi';
 import { ethers } from 'ethers';
+import { getRpcUrl } from './AppConfig';
 
 const ERC20_ABI = [
   {
@@ -30,6 +31,7 @@ interface TokenVerificationProps {
   tokenAddress: string;
   requiredAmount: string;
   tokenName?: string;
+  chainType?: string;
   onVerificationComplete: () => void;
   onClose: () => void;
 }
@@ -38,6 +40,7 @@ const TokenVerification: React.FC<TokenVerificationProps> = ({
   tokenAddress,
   requiredAmount,
   tokenName = "Token",
+  chainType = "ethereum",
   onVerificationComplete,
   onClose
 }) => {
@@ -48,8 +51,10 @@ const TokenVerification: React.FC<TokenVerificationProps> = ({
   const [tokenDecimals, setTokenDecimals] = useState<number>(18);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
+  const [isBalanceLoading, setIsBalanceLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [verificationAttempted, setVerificationAttempted] = useState<boolean>(false);
+  const [isValidContract, setIsValidContract] = useState<boolean>(true);
 
   useEffect(() => {
     if (isConnected && address) {
@@ -63,59 +68,105 @@ const TokenVerification: React.FC<TokenVerificationProps> = ({
     }
   }, [isConnected, address]);
 
-  const { data: balanceData, refetch: refetchBalance } = useContractRead({
+  const validateContractAddress = useCallback(async (address: string) => {
+    try {
+      const rpcUrl = getRpcUrl(chainType as any) || "https://rpc.ankr.com/eth";
+      const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+      const code = await provider.getCode(address);
+      return code !== '0x';
+    } catch (error) {
+      console.error('Contract validation error:', error);
+      return false;
+    }
+  }, [chainType]);
+
+  useEffect(() => {
+    if (!isInitializing && tokenAddress) {
+      validateContractAddress(tokenAddress).then((isValid) => {
+        setIsValidContract(isValid);
+        if (!isValid) {
+          setError('Invalid contract address. Please check the token address.');
+        }
+      });
+    }
+  }, [tokenAddress, isInitializing, validateContractAddress]);
+
+  const { data: balanceData, refetch: refetchBalance, error: balanceError } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
     functionName: 'balanceOf',
     args: [address],
-    enabled: !!address && !!tokenAddress && !isInitializing,
+    enabled: !!address && !!tokenAddress && !isInitializing && isValidContract,
+    onError: (error) => {
+      console.error('Balance read error:', error);
+      if (error.message.includes('CALL_EXCEPTION')) {
+        setError('Invalid token contract. Please check the token address.');
+      }
+    }
   });
 
-  const { data: symbolData } = useContractRead({
+  const { data: symbolData, error: symbolError } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
     functionName: 'symbol',
-    enabled: !!tokenAddress && !isInitializing,
+    enabled: !!tokenAddress && !isInitializing && isValidContract,
+    onError: (error) => {
+      console.error('Symbol read error:', error);
+      setTokenSymbol(tokenName);
+    }
   });
 
-  const { data: decimalsData } = useContractRead({
+  const { data: decimalsData, error: decimalsError } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
     functionName: 'decimals',
-    enabled: !!tokenAddress && !isInitializing,
+    enabled: !!tokenAddress && !isInitializing && isValidContract,
+    onError: (error) => {
+      console.error('Decimals read error:', error);
+      setTokenDecimals(18);
+    }
   });
 
   useEffect(() => {
-    if (!isInitializing && balanceData) {
+    if (!isInitializing && balanceData && isValidContract) {
       try {
+        setIsBalanceLoading(true);
         const balance = ethers.utils.formatUnits(balanceData.toString(), tokenDecimals);
         setUserBalance(balance);
+        setError(''); // Clear any previous errors
       } catch (err) {
         console.error('Error formatting balance:', err);
         setError('Error formatting token balance');
+      } finally {
+        setIsBalanceLoading(false);
       }
     }
-  }, [balanceData, tokenDecimals, isInitializing]);
+  }, [balanceData, tokenDecimals, isInitializing, isValidContract]);
 
   useEffect(() => {
-    if (!isInitializing && symbolData) {
+    if (!isInitializing && symbolData && isValidContract) {
       setTokenSymbol(symbolData.toString());
     }
-  }, [symbolData, isInitializing]);
+  }, [symbolData, isInitializing, isValidContract]);
 
   useEffect(() => {
-    if (!isInitializing && decimalsData) {
+    if (!isInitializing && decimalsData && isValidContract) {
       setTokenDecimals(Number(decimalsData));
     }
-  }, [decimalsData, isInitializing]);
+  }, [decimalsData, isInitializing, isValidContract]);
 
-  const hasRequiredTokens = parseFloat(userBalance) >= parseFloat(requiredAmount);
+  const hasRequiredTokens = !isBalanceLoading && parseFloat(userBalance) >= parseFloat(requiredAmount);
 
   const handleVerify = async () => {
     try {
       setIsLoading(true);
       setVerificationAttempted(true);
       setError('');
+      
+      if (!isValidContract) {
+        setError('Invalid token contract. Please check the token address.');
+        return;
+      }
       
       await refetchBalance();
       if (hasRequiredTokens) {
@@ -332,9 +383,9 @@ const TokenVerification: React.FC<TokenVerificationProps> = ({
             
             <button
               onClick={handleVerify}
-              disabled={!hasRequiredTokens || isLoading}
+              disabled={!hasRequiredTokens || isLoading || !isValidContract}
               className={`flex-1 font-medium py-3 px-4 rounded-xl transition-colors ${
-                hasRequiredTokens && !isLoading
+                hasRequiredTokens && !isLoading && isValidContract
                   ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm' 
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
               }`}
