@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { mainnet, base, polygon, arbitrum, optimism, goerli, sepolia, polygonMumbai, optimismGoerli, arbitrumSepolia, baseSepolia, Chain } from 'viem/chains';
 
-export type ChainType = 'ethereum' | 'solana' | 'base' | 'polygon' | 'arbitrum' | 'optimism' | 'goerli' | 'sepolia' | 'polygonMumbai' | 'optimismGoerli' | 'arbitrumSepolia' | 'baseSepolia';
+export type ChainType = 'ethereum' | 'base' | 'polygon' | 'arbitrum' | 'optimism' | 'goerli' | 'sepolia' | 'polygonMumbai' | 'optimismGoerli' | 'arbitrumSepolia' | 'baseSepolia';
 
 export const getViemChain = (chainType: ChainType): Chain | null => {
   const chainMap: Record<ChainType, Chain | null> = {
@@ -16,7 +16,6 @@ export const getViemChain = (chainType: ChainType): Chain | null => {
     optimismGoerli: optimismGoerli,
     arbitrumSepolia: arbitrumSepolia,
     baseSepolia: baseSepolia,
-    solana: null,
   };
   return chainMap[chainType];
 };

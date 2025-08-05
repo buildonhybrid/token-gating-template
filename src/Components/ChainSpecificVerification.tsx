@@ -73,8 +73,6 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
   }, [isConnected, address]);
 
   const validateContractAddress = useCallback(async (address: string, chainType: ChainType) => {
-    if (chainType === 'solana') return true;
-    
     try {
       const rpcUrl = getRpcUrl(chainType);
       if (!rpcUrl) return false;
@@ -99,19 +97,13 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!isInitializing && tokenAddress && chainType !== 'solana') {
-      validateContractAddress(tokenAddress, chainType).then((isValid) => {
-        setIsValidContract(isValid);
-        // Don't set error immediately, let the balance fetch complete first
-        if (!isValid) {
-          console.log('Contract validation failed, but will retry with balance fetch');
-        }
-      });
+    if (!isInitializing && tokenAddress) {
+      validateContractAddress(tokenAddress, chainType).then(setIsValidContract);
     }
   }, [tokenAddress, chainType, isInitializing, validateContractAddress]);
 
   useEffect(() => {
-    if (!isInitializing && chainType !== 'solana' && tokenAddress && address && isValidContract) {
+    if (!isInitializing && tokenAddress && address && isValidContract) {
       const getDirectBalance = async () => {
         try {
           setIsBalanceLoading(true);
@@ -156,7 +148,7 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
   }, [chainType, tokenAddress, address, tokenDecimals, isInitializing, isValidContract]);
 
   useEffect(() => {
-    if (!isInitializing && chainType !== 'solana' && tokenAddress && isValidContract) {
+    if (!isInitializing && tokenAddress && isValidContract) {
       const getDirectSymbol = async () => {
         try {
           const rpcUrl = getRpcUrl(chainType);
@@ -180,7 +172,7 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
   }, [chainType, tokenAddress, tokenName, isInitializing, isValidContract]);
 
   useEffect(() => {
-    if (!isInitializing && chainType !== 'solana' && tokenAddress && isValidContract) {
+    if (!isInitializing && tokenAddress && isValidContract) {
       const getDirectDecimals = async () => {
         try {
           const rpcUrl = getRpcUrl(chainType);
@@ -204,9 +196,6 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
   }, [chainType, tokenAddress, isInitializing, isValidContract]);
 
   const isOnCorrectNetwork = () => {
-    if (chainType === 'solana') {
-      return true;
-    }
     const expectedChainId = getChainId(chainType);
     return chain?.id === expectedChainId;
   };
@@ -218,102 +207,30 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
     }
   };
 
-  const { data: balanceData, refetch: refetchBalance, error: balanceError } = useContractRead({
+  const { data: balanceData, refetch: refetchBalance } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
     functionName: 'balanceOf',
     args: [address],
-    enabled: !!address && !!tokenAddress && chainType !== 'solana' && !isInitializing && isValidContract,
-    onError: (error) => {
-      console.error('Balance read error:', error);
-      // Don't set error immediately, let the direct ethers call handle it
-    }
+    enabled: !!address && !!tokenAddress && !isInitializing && isValidContract,
   });
 
-  const { data: symbolData, error: symbolError } = useContractRead({
+  const { data: symbolData } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
     functionName: 'symbol',
-    enabled: !!tokenAddress && chainType !== 'solana' && !isInitializing && isValidContract,
-    onError: (error) => {
-      console.error('Symbol read error:', error);
-      setTokenSymbol(tokenName);
-    }
+    enabled: !!tokenAddress && !isInitializing && isValidContract,
   });
 
-  const { data: decimalsData, error: decimalsError } = useContractRead({
+  const { data: decimalsData } = useContractRead({
     addressOrName: tokenAddress,
     contractInterface: ERC20_ABI,
     functionName: 'decimals',
-    enabled: !!tokenAddress && chainType !== 'solana' && !isInitializing && isValidContract,
-    onError: (error) => {
-      console.error('Decimals read error:', error);
-      setTokenDecimals(18);
-    }
+    enabled: !!tokenAddress && !isInitializing && isValidContract,
   });
 
-  const checkSolanaBalance = async () => {
-    try {
-      setIsLoading(true);
-      setIsBalanceLoading(true);
-      setError('');
-      
-      if (typeof window !== 'undefined' && (window as any).solana) {
-        const solana = (window as any).solana;
-        
-        if (!solana.isConnected) {
-          setError('Please connect your Solana wallet first.');
-          return;
-        }
-
-        const response = await solana.request({
-          method: 'getTokenAccountsByOwner',
-          params: {
-            owner: address,
-            mint: tokenAddress,
-            programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
-          }
-        });
-
-        if (response.value && response.value.length > 0) {
-          let totalBalance = 0;
-          for (const account of response.value) {
-            const accountInfo = await solana.request({
-              method: 'getTokenAccountBalance',
-              params: {
-                tokenAccount: account.pubkey
-              }
-            });
-            
-            if (accountInfo.value && accountInfo.value.uiAmount) {
-              totalBalance += accountInfo.value.uiAmount;
-            }
-          }
-          
-          setUserBalance(totalBalance.toString());
-          setTokenSymbol(tokenName);
-          setDebugInfo(`Solana balance: ${totalBalance} ${tokenName}`);
-        } else {
-          setUserBalance('0');
-          setTokenSymbol(tokenName);
-          setDebugInfo('No Solana token accounts found');
-        }
-      } else {
-        setError('Solana wallet not detected. Please install a Solana wallet extension like Phantom or Solflare.');
-      }
-    } catch (error) {
-      console.error('Solana balance check error:', error);
-      setError('Failed to check Solana token balance. Please ensure your wallet is connected and try again.');
-    } finally {
-      setIsLoading(false);
-      setIsBalanceLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (!isInitializing && chainType === 'solana' && isConnected && address) {
-      checkSolanaBalance();
-    } else if (!isInitializing && balanceData && chainType !== 'solana' && isValidContract) {
+    if (!isInitializing && balanceData && isValidContract) {
       try {
         const balance = ethers.utils.formatUnits(balanceData.toString(), tokenDecimals);
         setUserBalance(balance);
@@ -323,22 +240,22 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
         setUserBalance('0');
       }
     }
-  }, [chainType, balanceData, tokenDecimals, tokenSymbol, address, isConnected, tokenAddress, tokenName, isInitializing, isValidContract]);
+  }, [balanceData, tokenDecimals, tokenSymbol, address, isConnected, tokenAddress, tokenName, isInitializing, isValidContract]);
 
   useEffect(() => {
-    if (!isInitializing && symbolData && chainType !== 'solana' && isValidContract) {
+    if (!isInitializing && symbolData && isValidContract) {
       setTokenSymbol(symbolData.toString());
     }
-  }, [symbolData, chainType, isInitializing, isValidContract]);
+  }, [symbolData, isInitializing, isValidContract]);
 
   useEffect(() => {
-    if (!isInitializing && decimalsData && chainType !== 'solana' && isValidContract) {
+    if (!isInitializing && decimalsData && isValidContract) {
       setTokenDecimals(Number(decimalsData));
     }
-  }, [decimalsData, chainType, isInitializing, isValidContract]);
+  }, [decimalsData, isInitializing, isValidContract]);
 
   useEffect(() => {
-    if (!isInitializing && isConnected && address && chainType !== 'solana') {
+    if (!isInitializing && isConnected && address) {
       setDebugInfo(`Connected: ${address}\nChain: ${chainType}\nToken: ${tokenAddress}`);
     }
   }, [isConnected, address, chainType, tokenAddress, isInitializing]);
@@ -350,19 +267,6 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
       setIsLoading(true);
       setVerificationAttempted(true);
       setError('');
-      
-      if (chainType === 'solana') {
-        await checkSolanaBalance();
-        if (hasRequiredTokens) {
-          onVerificationComplete();
-        } else {
-          setError('Insufficient Solana tokens. Wallet will be disconnected.');
-          setTimeout(() => {
-            disconnect();
-          }, 3000);
-        }
-        return;
-      }
       
       // Don't block verification if contract validation failed, let it try anyway
       await refetchBalance();
@@ -394,8 +298,7 @@ const ChainSpecificVerification: React.FC<ChainSpecificVerificationProps> = ({
       polygonMumbai: 'Polygon Mumbai',
       optimismGoerli: 'Optimism Goerli',
       arbitrumSepolia: 'Arbitrum Sepolia',
-      baseSepolia: 'Base Sepolia',
-      solana: 'Solana'
+      baseSepolia: 'Base Sepolia'
     };
     return chainNames[chain] || chain;
   };

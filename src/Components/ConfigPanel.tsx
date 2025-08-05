@@ -29,7 +29,6 @@ const ConfigPanel: React.FC = () => {
     { value: 'optimismGoerli', label: 'Optimism Goerli', description: 'Testnet' },
     { value: 'arbitrumSepolia', label: 'Arbitrum Sepolia', description: 'Testnet' },
     { value: 'baseSepolia', label: 'Base Sepolia', description: 'Testnet' },
-    { value: 'solana', label: 'Solana', description: 'SPL' },
   ];
 
   return (
@@ -114,13 +113,10 @@ const ConfigPanel: React.FC = () => {
                   value={tokenAddress}
                   onChange={(e) => setTokenAddress(e.target.value)}
                   className="w-full px-3 py-2 bg-zinc-700 border border-zinc-600 rounded text-white focus:border-blue-500 focus:outline-none text-sm"
-                  placeholder={selectedChain === 'solana' ? 'Mint address...' : '0x...'}
+                  placeholder="0x..."
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  {selectedChain === 'solana' 
-                    ? 'Enter SPL token mint address' 
-                    : 'Enter ERC20 contract address (optional)'
-                  }
+                  Enter ERC20 contract address (optional)
                 </p>
               </div>
 

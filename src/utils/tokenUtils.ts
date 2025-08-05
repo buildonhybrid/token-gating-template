@@ -94,69 +94,6 @@ export const validateEthereumAddress = (address: string): boolean => {
   return ethers.utils.isAddress(address);
 };
 
-export const validateSolanaAddress = (address: string): boolean => {
-  try {
-    if (typeof window !== 'undefined' && (window as any).solana) {
-      const { PublicKey } = (window as any).solanaWeb3;
-      new PublicKey(address);
-      return true;
-    }
-    return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
-  } catch {
-    return false;
-  }
-};
-
-export const getSolanaTokenBalance = async (
-  walletAddress: string,
-  tokenMint: string
-): Promise<{ balance: string; symbol: string }> => {
-  try {
-    if (typeof window === 'undefined' || !(window as any).solana) {
-      throw new Error('Solana wallet not detected');
-    }
-
-    const solana = (window as any).solana;
-    
-    if (!solana.isConnected) {
-      throw new Error('Solana wallet not connected');
-    }
-
-    const response = await solana.request({
-      method: 'getTokenAccountsByOwner',
-      params: {
-        owner: walletAddress,
-        mint: tokenMint,
-        programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
-      }
-    });
-
-    let totalBalance = 0;
-    if (response.value && response.value.length > 0) {
-      for (const account of response.value) {
-        const accountInfo = await solana.request({
-          method: 'getTokenAccountBalance',
-          params: {
-            tokenAccount: account.pubkey
-          }
-        });
-        
-        if (accountInfo.value && accountInfo.value.uiAmount) {
-          totalBalance += accountInfo.value.uiAmount;
-        }
-      }
-    }
-
-    return {
-      balance: totalBalance.toString(),
-      symbol: 'SPL'
-    };
-  } catch (error) {
-    console.error('Error getting Solana token balance:', error);
-    throw error;
-  }
-};
-
 export const getEthereumTokenBalance = async (
   walletAddress: string,
   tokenAddress: string,

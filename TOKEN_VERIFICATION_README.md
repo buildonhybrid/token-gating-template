@@ -1,48 +1,18 @@
 # Token Verification System
 
-A comprehensive token verification system for web3 applications with multi-chain support.
+A comprehensive token gating system for web3 applications that verifies users hold required tokens before granting access.
 
 ## Features
 
-### ✅ Core Functionality
-- **Multi-chain support**: Ethereum, Base, Polygon, Arbitrum, Solana (placeholder)
-- **Token balance verification**: Check if users hold required tokens
-- **Network switching**: Automatic detection and prompts
-- **Auto-disconnect**: Disconnect wallet on failed verification
-- **Debug information**: Detailed logging for troubleshooting
+- **Multi-chain support**: Ethereum, Base, Polygon, Arbitrum, Optimism
+- **Flexible configuration**: Enable/disable verification, set token requirements
+- **Real-time validation**: Check token balances and contract validity
+- **Network switching**: Automatic prompts for correct network
+- **Error handling**: Comprehensive error messages and debugging
+- **Auto-disconnect**: Disconnect wallet on verification failure
 
-### ✅ Configuration Panel
-- **Toggle verification**: Enable/disable token verification flow
-- **Chain selection**: Choose from supported networks
-- **Token configuration**: Set token name, address, and required amount
-- **Preview functionality**: See what users need to hold
+## How It Works
 
-### ✅ LLM Template Features
-- **Configurable visibility**: Hide config panel for LLM-generated apps
-- **Token gating**: Block app access until verification is complete
-- **Customizable requirements**: Set via prompt for LLM templates
-
-## Usage
-
-### Basic Usage
-```tsx
-import App from './App';
-
-// Show config panel (default)
-<App />
-
-// Hide config panel for LLM templates
-<App showConfigPanel={false} />
-```
-
-### LLM Template Usage
-For LLM-generated applications, you can:
-
-1. **Hide the config panel** by setting `showConfigPanel={false}`
-2. **Configure requirements via prompt** by setting the app config values
-3. **Enable strict token gating** that blocks access until verification
-
-### Token Gating Flow
 1. User connects wallet
 2. If token verification is enabled:
    - Check if user has required tokens
@@ -56,7 +26,7 @@ For LLM-generated applications, you can:
 ```tsx
 {
   enableTokenVerification: boolean,    // Enable/disable verification
-  selectedChain: ChainType,           // 'ethereum' | 'base' | 'polygon' | 'arbitrum' | 'solana'
+  selectedChain: ChainType,           // 'ethereum' | 'base' | 'polygon' | 'arbitrum' | 'optimism'
   tokenAddress: string,               // Contract address (optional)
   requiredTokenAmount: string,        // Required token amount
   tokenName: string                   // Token name for display
@@ -111,9 +81,6 @@ The system uses **viem** for chain data and supports the following networks:
 - **Optimism Goerli** (Chain ID: 420)
 - **Arbitrum Sepolia** (Chain ID: 421614)
 - **Base Sepolia** (Chain ID: 84532)
-
-### Solana (Placeholder)
-- **Solana Mainnet** (Requires @solana/web3.js integration)
 
 ### Chain Data Source
 All chain information (Chain IDs, RPC URLs, block explorers) is sourced from **viem** to ensure accuracy and maintainability.
